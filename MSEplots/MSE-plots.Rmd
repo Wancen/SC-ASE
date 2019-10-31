@@ -1,0 +1,121 @@
+---
+title: "MSE plots"
+author: "Michael Love"
+---
+sim.em are not integer
+```{r}
+# BiocManager::install("LoomExperiment")
+library(LoomExperiment)
+library(ggplot2)
+files <- list.files(".", ".loom")
+dat <- list()
+nms <- sub("deng.(.*).loom","\\1",files)
+for (i in 1:4) {
+  dat[[nms[i]]] <- import(files[i])
+}
+sapply(dat, dim)
+lapply(dat, assayNames)
+#rows are 43346 genes,columns are 122 cells.
+#represent each cell on average have 147538 read counts
+mean(colSums(assay(dat[["sim.em"]], "matrix"))) # 147538
+mean(colSums(assay(dat[["full.em"]], "matrix"))) #14753888
+assay(dat[["sim.em"]], "p_k")
+```
+uniqe total are integer
+```{r}
+# these will be the counts used on the x-axis
+counts <- assay(dat[["sim.uq"]], "uniq_total")
+uniq.total <- (assay(dat[["full.uq"]], "uniq_F") +
+               assay(dat[["full.uq"]], "uniq_B"))
+assay(dat[["full.uq"]], "uniq_total") <- uniq.total
+```
+
+```{r}
+get.mse <- function(x, y, loc=NULL) {
+  # loc is a binary matrix of which locations to use
+  if (is.null(loc)) {
+    loc <- apply(as.matrix(x), 2, function(z) !is.nan(z))
+  }
+  s <- rowSums(loc * (as.matrix(x)-as.matrix(y))^2, na.rm=TRUE)
+  n <- rowSums(loc)
+  s/n
+}
+#no partial pooling vs partial pooling
+calcDiffMSE <- function(nopp, pp, true) {
+  mse.nopp <- get.mse(nopp, true)
+  loc <- apply(as.matrix(nopp), 2, function(x) !is.nan(x))
+  mse.pp <- get.mse(pp, true, loc)
+  keep <- rowSums(!is.nan(nopp)) >= 15 & !is.nan(mse.nopp - mse.pp)
+  #keep gene location that has difference
+  print(sum(keep))
+  d <- data.frame(log10ave=log10(cts),
+                  nopp.minus.pp=(mse.nopp - mse.pp))
+  d <- d[keep,]
+  print(with(d, sum(nopp.minus.pp > .05)))
+  print(with(d, sum(nopp.minus.pp < -.05)))
+  print(with(d, mean(nopp.minus.pp)))
+  d
+}
+```
+
+EM version
+
+What is Rhat_ase and selected
+
+```{r em}
+#Rhat_ase represents coverage, selected represent high expressed
+idx <- mcols(dat[["sim.em"]])$Rhat_ase < 1.1 &
+       mcols(dat[["sim.em"]])$Selected > 0
+table(idx)
+#get true allelic proportion
+true <- (assay(dat[["full.em"]], "F") / assay(dat[["full.em"]], "matrix"))[idx,]
+nopp <- (assay(dat[["sim.em"]], "F") / assay(dat[["sim.em"]], "matrix"))[idx,]
+pp <- assay(dat[["sim.em"]], "p_k")[idx,]
+cts <- rowMeans(counts[idx,])
+d <- calcDiffMSE(nopp, pp, true)
+ggplot(d, aes(x=log10ave,y=nopp.minus.pp)) + # EM
+  geom_hex(bins=120) +
+  geom_hline(yintercept=0, alpha=.6,color="grey") +
+  ylim(-.4,.4) +
+  scale_fill_gradient2(low="black",mid="red",high="white",midpoint=19)
+```
+
+uniq version
+
+```{r uniq}
+idx <- mcols(dat[["sim.uq"]])$Rhat_ase < 1.1 &
+       mcols(dat[["sim.uq"]])$Selected > 0
+table(idx)
+true <- (assay(dat[["full.uq"]], "uniq_F") / assay(dat[["full.uq"]], "uniq_total"))[idx,]
+nopp <- (assay(dat[["sim.uq"]], "uniq_F") / assay(dat[["sim.uq"]], "uniq_total"))[idx,]
+pp <- assay(dat[["sim.uq"]], "p_k")[idx,]
+cts <- rowMeans(counts[idx,])
+d <- calcDiffMSE(nopp, pp, true)
+ggplot(d, aes(x=log10ave,y=nopp.minus.pp)) + # uniq
+  geom_hex(bins=80) +
+  geom_hline(yintercept=0, alpha=.6,color="grey") +
+  ylim(-.15,.15) +
+  scale_fill_gradient2(low="black",mid="red",high="white",midpoint=11)
+```
+Method 1 and 2 comparison
+```{r}
+idx1 <- mcols(dat[["sim.uq"]])$Rhat_ase < 1.1 &
+       mcols(dat[["sim.uq"]])$Selected > 0
+idx2 <- mcols(dat[["sim.em"]])$Rhat_ase < 1.1 &
+       mcols(dat[["sim.em"]])$Selected > 0
+idx3<-idx1&idx2
+table(idx3)
+true <- (assay(dat[["full.uq"]], "uniq_F") / assay(dat[["full.uq"]], "uniq_total"))[idx3,]
+nopp_uq <- (assay(dat[["sim.uq"]], "uniq_F") / assay(dat[["sim.uq"]], "uniq_total"))[idx3,]
+nopp_em <- (assay(dat[["sim.em"]], "F") / assay(dat[["sim.em"]], "matrix"))[idx3,]
+cts <- rowMeans(counts[idx3,])
+d <- calcDiffMSE(nopp_uq, nopp_em, true)
+ggplot(d, aes(x=log10ave,y=nopp.minus.pp)) + # uniq
+  labs(y="nopp_uq.minus.nopp_em")+
+  geom_hex(bins=80) +
+  geom_hline(yintercept=0, alpha=.6,color="grey") +
+  ylim(-.2,.2) +
+  scale_fill_gradient2(low="black",mid="red",high="white",midpoint=38)
+
+```
+
