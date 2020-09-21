@@ -3,6 +3,7 @@ library(dplyr)
 library(igraph)
 library(aricode)
 library(emdbook)
+library(mclust)
 library(tibble)
 n <- 20 # cells per cluster
 frac <- .5 # fraction of high counts
