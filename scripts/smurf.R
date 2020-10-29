@@ -6,9 +6,11 @@ library(tibble)
 library(pbapply)
 library(factoextra)
 library(aricode)
+library(clue)
+library(pheatmap)
 n <- 20 # cells per cluster
 frac <- .5 # fraction of high counts
-ngene <- 100
+ngene <- 200
 nct<-8
 # f <- factor(rep(1:4,each=n/4)) # two clusters
 f <- factor(rep(1:nct,each=n))
@@ -21,27 +23,27 @@ T=20
 sd<-0.01
 ################################################################################
 ## Define true cell type label according to below simulations####################
-ctype_tru<-rbind(matrix(rep(c(1,1,2,2,3,3,4,4),each=10),ncol=nct),matrix(rep(c(1,1,2,2,3,3,3,3),each=10),ncol=nct),matrix(rep(c(1,1,1,1,1,1,1,1),each=60),ncol=nct),matrix(rep(c(1,1,2,2,2,2,2,2),each=10),ncol=nct),matrix(rep(c(1,1,2,2,3,3,4,4),each=10),ncol=nct))
+ctype_tru<-rbind(matrix(rep(c(1,1,2,2,3,3,4,4),each=20),ncol=nct),matrix(rep(c(1,1,2,2,3,3,3,3),each=20),ncol=nct),matrix(rep(c(1,1,1,1,1,1,1,1),each=40),ncol=nct),matrix(rep(c(1,1,2,2,2,2,2,2),each=20),ncol=nct),matrix(rep(c(1,1,2,2,3,3,4,4),each=20),ncol=nct),matrix(rep(c(1,1,1,1,1,1,1,1),each=80),ncol=nct))
 colnames(ctype_tru)<-paste0("type",seq_len(nct))
-ctype_wilcoxtru<-rbind(matrix(rep(c(0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,0),each=10),ncol=choose(nct,2)),
-                       matrix(rep(c(0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0),each=10),ncol=choose(nct,2)),
-                       matrix(rep(c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),each=60),ncol=choose(nct,2)),
-                       matrix(rep(c(0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),each=10),ncol=choose(nct,2)),
-                       matrix(rep(c(0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,0),each=10),ncol=choose(nct,2)))
+ctype_wilcoxtru<-rbind(matrix(rep(c(0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,0),each=20),ncol=choose(nct,2)),
+                       matrix(rep(c(0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0),each=20),ncol=choose(nct,2)),
+                       matrix(rep(c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),each=40),ncol=choose(nct,2)),
+                       matrix(rep(c(0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),each=20),ncol=choose(nct,2)),
+                       matrix(rep(c(0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,1,0),each=20),ncol=choose(nct,2)),
+                       matrix(rep(c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),each=80),ncol=choose(nct,2)))
 colnames(ctype_wilcoxtru)<-paste0("pairwise-type",seq_len(choose(nct,2)))
 
-## Extract coefficients #######################
-bin<-matrix(0,nrow = k*T,ncol = nct)
-# bin3<-matrix(0,nrow = k*T,ncol = nct)
-lin<-matrix(0,nrow = k*T,ncol = nct)
-truth<-matrix(0,nrow = k*T,ncol = nct)
+## coefficient average MSE ############
+msebin_mean<-matrix(NA,nrow = T,ncol = nct)
+msebin2_mean<-matrix(NA,nrow = T,ncol = nct)
+mselin_mean<-matrix(NA,nrow = T,ncol = nct)
+mselin2_mean<-matrix(NA,nrow = T,ncol = nct)
 
 ## ARI for all iterations ###################
 ARI_gene<-numeric(T)
 ARI_lin<-numeric(T)
 ARI_wilcoxon<-numeric(T)
 ARI_bin<-numeric(T)
-# ARI_bin3<-numeric(T)
 
 ## Start for loop ########################
 system.time(for (t in 1:T) {
@@ -57,19 +59,19 @@ colnames(cts2) <-paste0("cell",seq_len(ncol(cts2)))
 
 ## Simulate allelic ratio pattern ########################
 prob1 <- rnorm(ngene,.5,sd) # close to 0.5
-prob1[1:10] <- rnorm(10,.9,sd)
-prob1[11:20] <- rnorm(10,.75,sd)
-prob1[81:90] <- rnorm(10,.3,sd)
-prob1[91:100] <- rnorm(10,.3,sd)
+prob1[1:20] <- rnorm(10,.9,sd)
+prob1[21:40] <- rnorm(10,.75,sd)
+prob1[81:100] <- rnorm(10,.3,sd)
+prob1[101:120] <- rnorm(10,.3,sd)
 
 prob2 <- rnorm(ngene,.5,sd) # close to 0.5
-prob2[1:10] <- rnorm(10,0.8,sd)
-prob2[11:20] <- rnorm(10,0.65,sd)
-prob2[91:100] <- rnorm(10,0.35,sd)
+prob2[1:20] <- rnorm(10,0.8,sd)
+prob2[21:40] <- rnorm(10,0.65,sd)
+prob2[101:120] <- rnorm(10,0.35,sd)
 
 prob3 <- rnorm(ngene,.5,sd) # close to 0.5
-prob3[1:10] <- rnorm(10,0.75,sd)
-prob3[91:100] <- rnorm(10,0.2,sd)
+prob3[1:20] <- rnorm(10,0.75,sd)
+prob3[101:120] <- rnorm(10,0.2,sd)
 
 prob4 <- rnorm(ngene,.5,sd) # close to 0.5
 # plot(prob1,prob2,col=gene_cluster$cluster)
@@ -87,32 +89,31 @@ ase.cts3<- matrix(c(
 ratio3<-(ase.cts3)/(cts2)
 ## pseudo allelic ratio for gene clustering ##################
 ratio33<-(ase.cts3+1)/(cts2+2)
-anno_df <- data.frame(f, row.names=colnames(cts2))
+level<-c("type1", "type2", "type3","type4","type5","type6","type7","type8")
+jpeg("simultaion_heatmap.jpeg",width = 5, height = 4,units = "in",res=300)
+# anno_df <- data.frame(celltype=rep(level,each=n), row.names=colnames(cts2))
 pheatmap(ratio33, cluster_rows = FALSE, cluster_cols = FALSE,
 annotation_col=anno_df,show_colnames = F)
-
-## decide optimal number of clusters ###########
-d_clust <- Mclust(as.matrix(ratio33), G=c(2,4,5,6))
-m.best <- dim(d_clust$z)[2]
-cat("model-based optimal number of clusters:", m.best, "\n")
-
-#######################################
-## Hierarchical clustering ############
-###############################################
-gene_dist<-dist(ratio33,method = "euclidean")
-nbcluster<-cmdscale(gene_dist)
-x <- nbcluster[,1]
-y <- nbcluster[,2]
-plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2",
-     main="Metric MDS")
-gene_hclust <- hclust(gene_dist)
+dev.off()
+# 
+# #######################################
+# ## Hierarchical clustering ############
+# ###############################################
+gene_dist<-dist(ratio33,method = "manhattan")
+# nbcluster<-cmdscale(gene_dist)
+# x <- nbcluster[,1]
+# y <- nbcluster[,2]
+# plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2",
+#      main="Metric MDS")
+gene_hclust <- hclust(gene_dist,method = "ward.D2")
 # plot(gene_hclust, labels = FALSE)
 # abline(h = 6, col = "brown", lwd = 2) # add horizontal line to illustrate cutting dendrogram
 # cut genes into 5 group
-gene_cluster<-cutree(gene_hclust1, k = 5) %>%
+gene_cluster<-cutree(gene_hclust, k = 5) %>%
   # turn the named vector into a tibble
   enframe(name="gene",value = "cluster")
-gene_cluster[["true"]]<-matrix(c(rep(1,10),rep(2,10),rep(3,60),rep(4,10),rep(5,10)),ncol = 1)
+table(gene_cluster$cluster)
+gene_cluster[["true"]]<-matrix(c(rep(1,20),rep(2,20),rep(3,40),rep(4,20),rep(5,20),rep(3,80)),ncol = 1)
 
 #######################################
 ## kmeans ############
@@ -122,47 +123,51 @@ gene_cluster[["true"]]<-matrix(c(rep(1,10),rep(2,10),rep(3,60),rep(4,10),rep(5,1
 # n_clust<-fviz_nbclust(ratio33, hcut, method = "gap_stat")
 # n_clust<-n_clust$data
 # max_cluster<-as.numeric(n_clust$clusters[which.max(n_clust$y)])
-km.res <- kmeans(ratio33, 5,nstart = 15)
-
-gene_cluster<-data.frame(gene=seq_len(ngene),cluster=km.res$cluster,true=matrix(c(rep(1,10),rep(2,10),rep(3,60),rep(4,10),rep(5,10)),ncol = 1))
+# km.res <- kmeans(ratio33, 5,nstart = 50)
+# calinhara(ratio33,gene_cluster$cluster)
+# 
+# gene_cluster<-data.frame(gene=seq_len(ngene),cluster=km.res$cluster,true=matrix(c(rep(1,10),rep(2,10),rep(3,60),rep(4,10),rep(5,10)),ncol = 1))
 
 ARI_gene[t]<-adjustedRandIndex(gene_cluster$cluster,gene_cluster$true)
 print(ARI_gene[t])
 
 ct_bin<-matrix(0,ncol=nct,nrow = ngene)
 ct_lin<-matrix(0,ncol=nct,nrow = ngene)
-ct_bin3<-matrix(0,ncol=nct,nrow = ngene)
 ct_wilcoxon<-matrix(0,ncol = choose(nct,2),nrow = ngene)
-
+msebin<-matrix(0,nrow=nct*n,ncol = ngene)
+msebin2<-matrix(0,nrow=nct*n,ncol = ngene)
+mselin<-matrix(0,nrow=nct*n,ncol = ngene)
+mselin2<-matrix(0,nrow=nct*n,ncol = ngene)
 ########################################################################
 ## detect cell type according allelic ratio ############################
 #####################################################
 for (i in 1:5) {
 print(paste("gene pattern",i))
 poi<-which(gene_cluster$cluster==i)
-# gene1_mean<-if(length(poi)==1) ratio3[poi,]else colMeans(ratio3[poi,],na.rm = T)
+truth<-t(ratio3[poi,])
+# est<-c(rep(c(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8),each=n))
+# test<-(truth-est)^2
+
 gene1_mean<-as.vector(ratio3[poi,])
 poina<-which(!is.na(gene1_mean))
 count1_mean<-as.vector(cts2[poi,])
-# truth[(5*t-5+i),]<-sapply(1:nct, function(j){mean(gene1_mean[(n*j*length(poi)-n*length(poi)+1):(n*j*length(poi))],na.rm=T)})
 
 rent<-tibble(ratio=gene1_mean,X=as.factor(rep(c(1,2,3,4,5,6,7,8),each=n*length(poi))),cts=count1_mean)
 levels(rent$X) <- c("type1", "type2", "type3","type4","type5","type6","type7","type8")
 
 ## Gaussian likelihood #####################
-formu <- (ratio-0.5) ~ p(X, pen = "gflasso",refcat = "type8")
+formu <- ratio ~ p(X, pen = "gflasso",refcat = "type1")
 fit2 <- glmsmurf(formula = formu, family=gaussian(), data = rent,
-                                    pen.weights = "glm.stand", lambda = "cv1se.mse",lambda1 = 0.02,
-                                    control = list(lambda.length = 50L,k=10),pen.weights.return=T) #pen.weights="glm" will fused coefficients more
+                                    pen.weights = "glm.stand", lambda = "cv1se.dev",
+                                    control = list(lambda.length = 50L,k=10)) #pen.weights="glm" will fused coefficients more
                                                                                # and more consistent with truth sometimes 
-print(coef(fit2))
-fit2$lambda
-print(coef_reest(fit2))
-coeflin<-coef_reest(fit2)
-coeflin[2:(nct+1)]<-coeflin[2:(nct+1)]+coeflin[1]
-type_lin=match(coeflin, unique(coeflin))
+coeflin<-coef(fit2)
+coeflin2<-coef_reest(fit2)
+coeflin[2:nct]<-coeflin[2:nct]+coeflin[1]
+coeflin2[2:nct]<-coeflin2[2:nct]+coeflin2[1]
+type_lin=match(coeflin2, unique(coeflin2))
 ct_lin[poi,]<-rep(type_lin,each=length(poi))
-plot_lambda(fit2)
+
 ## Wilcoxon Rank Sum test ###################################
 res <- pairwise.wilcox.test(rent$ratio,rent$X, p.adjust.method ="BH")
 adj<-as.data.frame(res$p.value)[lower.tri(res$p.value, diag = T)]
@@ -181,18 +186,26 @@ ct_wilcoxon[poi,sigdif]<-1
 # plot(gr)
 
 ## Binomial likelihood ###########################
-fit <- glmsmurf(formula = formu, family=binomial(link = "logit"), data = rent, weights = count1_mean[poina],lambda1 = 0.002,
-                       pen.weights = "glm.stand", lambda = "cv1se.mse" ,control = list(lambda.length = 50L,k=10)) #
-
-print(coef(fit))
+fit = tryCatch({
+  glmsmurf(formula = formu, family=binomial(link = "logit"), data = rent, weights = count1_mean[poina],
+                  pen.weights = "glm.stand", lambda = "cv1se.dev" ,control = list(lambda.length = 50L,k=10)) #
+}, error = function(error_condition) {
+  message('Failed determining the maximum value of lambda, using equal weight instead')
+   glmsmurf(formula = formu, family=binomial(link = "logit"), data = rent, weights = count1_mean[poina],
+                  pen.weights = "eq", lambda = "cv1se.dev" ,control = list(lambda.length = 50L,k=10)) #
+})
 coefbin<-coef(fit)
 coefbin[2:nct]<-coefbin[2:nct]+coefbin[1]
+coefbin2<-coef_reest(fit)
+coefbin2[2:nct]<-coefbin2[2:nct]+coefbin2[1]
 type=match(coefbin, unique(coefbin))
 ct_bin[poi,]<-rep(type,each=length(poi))
 
-bin[(5*t-5+i),]=sapply(1:nct, function(j){exp(coefbin[j])/(1 + exp(coefbin[j]))})
-# bin3[(5*t-5+i),]=sapply(1:nct, function(j){exp(coefbin3[j])/(1 + exp(coefbin3[j]))})
-lin[(5*t-5+i),]=sapply(1:nct, function(j){coeflin[j]})
+msebin[,poi]<-(truth-exp(coefbin)/(1 + exp(coefbin)))^2
+msebin2[,poi]<-(truth-exp(coefbin2)/(1 + exp(coefbin2)))^2
+mselin[,poi]<-(truth-coeflin)^2
+mselin2[,poi]<-(truth-coeflin2)^2
+# mean(test,na.rm = T)
 }
 
 
@@ -204,75 +217,35 @@ reswilcox[which(is.nan(reswilcox))]<-1
 ARI_wilcoxon[t]<-mean(reswilcox) #0.6118919
 res <- pbsapply(1:ngene, function(i) {AMI(ctype_tru[i,],ct_bin[i,])})
 res[which(is.nan(res))]<-1
-ARI_bin[t]<-mean(res) 
+ARI_bin[t]<-mean(res)
+
+## calculate cell type specific average MSE #########################
+msebin_mean[t,]<-pbsapply(1:nct,function(i){mean(unlist(msebin[which(f==i),]),na.rm=T)})
+msebin2_mean[t,]<-pbsapply(1:nct,function(i){mean(unlist(msebin2[which(f==i),]),na.rm=T)})
+mselin_mean[t,]<-pbsapply(1:nct,function(i){mean(unlist(mselin[which(f==i),]),na.rm=T)})
+mselin2_mean[t,]<-pbsapply(1:nct,function(i){mean(unlist(mselin2[which(f==i),]),na.rm=T)})
 # res3 <- pbsapply(1:ngene, function(i) {adjustedRandIndex(ctype_tru[i,],ct_bin3[i,])})
 # ARI_bin3[t]<-mean(res3)#0.72
 })
 
 #############################################################
 ## Compare coefficient relative efficiency ###################
-box<-data.frame(bindiff1=bin[,1]-truth[,1],
-                lindiff1=lin[,1]-truth[,1],
-                bindiff2=bin[,2]-truth[,2],
-                lindiff2=lin[,2]-truth[,2],
-                bindiff3=bin[,3]-truth[,3],
-                lindiff3=lin[,3]-truth[,3],
-                bindiff4=bin[,4]-truth[,4],
-                lindiff4=lin[,4]-truth[,4],
-                bindiff1=bin[,5]-truth[,5],
-                lindiff1=lin[,5]-truth[,5],
-                bindiff2=bin[,6]-truth[,6],
-                lindiff2=lin[,6]-truth[,6],
-                bindiff3=bin[,7]-truth[,7],
-                lindiff3=lin[,7]-truth[,7],
-                bindiff4=bin[,8]-truth[,8],
-                lindiff4=lin[,8]-truth[,8])
-boxplot(box,ylab="estimated-truth",ylim=c(-0.1,0.1))
+box<-cbind(msebin_mean,msebin2_mean,mselin_mean,mselin2_mean)
+order<-vector(length = 32)
+for (i in 1:8) {
+  order[(4*i-3):(4*i)]<-c(i,i+8,i+16,i+24)
+}
+boxplot(sqrt(box[,order]),ylab="Average MSE",ylim=c(0.2,0.26))
 abline(h=0, col=2)
 
 ARI<-data.frame(Gaussian=ARI_lin,Wilcoxon=ARI_wilcoxon,Binomial=ARI_bin)
-pdf("rplot.pdf") 
-boxplot(ARI,ylab="Adjusted mutual information")
-boxplot(ARI_gene,ylab="ARI for gene cluster")
+AMI<-ARI %>% gather(key=method,value=AMI,Gaussian:Binomial)
+
+jpeg("violin.jpeg",width = 5, height = 4,units = "in",res=300) 
+p <- ggplot(AMI, aes(x=method, y=AMI,fill=method)) + 
+  geom_violin()+scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"))+ theme_classic()+labs(title="Violin Plot of AMI  by methods",x="Methods", y = "Adjusted Mutual Information")
+p+ geom_jitter(shape=16, position=position_jitter(0.2))
 dev.off()
 
-res2 <- pbsapply(1:ngene, function(i) {adjustedRandIndex(ctype_tru[i,],ct_lin[i,])})
-ARI_lin[t]<-mean(res2) #0.6514286
-reswilcox <- pbsapply(1:ngene, function(i) {MARI(ctype_wilcoxtru[i,], ct_wilcoxon[i,])})
-ARI_wilcoxon[t]<-mean(reswilcox) #0.6118919
-res <- pbsapply(1:ngene, function(i) {MARI(ctype_tru[i,],ct_bin[i,])})
-ARI_bin[t]<-mean(res) 
 
 
-### Do parallel bagging ############################
-library(doParallel)  # for parallel backend to foreach
-library(foreach)     # for parallel processing with for loops
-
-# Create a parallel socket cluster
-cl <- makeCluster(4) # use 4 workers
-registerDoParallel(cl) # register the parallel backend
-
-# Fit model in parallel 
-system.time(fit22 <- foreach(
-  icount(5), #run 5 iterations
-  .packages = c("smurf","tibble"), 
-  .combine = cbind
-) %dopar% {
-  # bootstrap copy of training data
-  poi<-which(gene_cluster$cluster==2)
-  n1<-length(poi)
-  df_s =poi[sample(1:n1,size=n1/2,replace=F)]
-  gene1_mean<-as.vector(ratio3[df_s,])
-  poina<-which(!is.na(gene1_mean))
-  count1_mean<-as.vector(cts2[df_s,])
-  rent<-tibble(ratio=gene1_mean,X=as.factor(rep(c(1,2,3,4,5,6,7,8),each=n*length(df_s))),cts=count1_mean)
-  levels(rent$X) <- c("type1", "type2", "type3","type4","type5","type6","type7","type8")
-  
-  # fit fused lasso model to bootstrap copy
-  formu <- ratio ~ p(X, pen = "gflasso")
-  fit <- glmsmurf(formula = formu, family=binomial(link = "logit"), data = rent, weights = count1_mean[poina],
-                  pen.weights = "glm.stand", lambda = "cv1se.mse" ,control = list(lambda.length = 50L,k=10)) #
-  coefbin<-coef(fit)
-  coefbin[2:nct]<-coefbin[2:nct]+coefbin[1]
-  match(coefbin, unique(coefbin))
-})
