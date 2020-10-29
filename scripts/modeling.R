@@ -10,21 +10,24 @@ library(clue)
 cl <- makeCluster(4) # use 4 workers
 registerDoParallel(cl) # register the parallel backend
 
-total_sub<-totalexp[gene_feat]
-n1<-length(gene_feat)
+total_sub<-totalexp[gene_feat_mclust]
+n1<-length(gene_feat_mclust)
 nct=10
 
-gene_ratio<-as.vector(unlist(ratio[gene_feat,]))
+gene_ratio<-as.vector(unlist(ratio[gene_feat_mclust,]))
 poina<-which(!is.na(gene_ratio))
-gene_total<-as.vector(unlist(total_fil2[gene_feat,]))
-data<-tibble(ratio=gene_ratio,X=factor(rep(celltype,each=length(gene_feat)),levels = cell_meta_unique),cts=gene_total)
+gene_total<-as.vector(unlist(total_fil2[gene_feat_mclust,]))
+data<-tibble(ratio=gene_ratio,X=factor(rep(celltype,each=length(gene_feat_mclust)),levels = cell_meta_unique),cts=gene_total)
 data %>%
   group_by(X) %>%
   summarise(weighted_mean = weighted.mean(ratio, cts,na.rm=T))
 formu <- ratio ~ p(X, pen = "gflasso")
-system.time(fit_total <- glmsmurf(formula = formu, family=binomial(link = "logit"), data = data, weights = gene_total[poina],
-                            pen.weights = "glm.stand", lambda = "cv1se.dev",control = list(lambda.length = 50L,k=10))) #
-
+start_time <- Sys.time()
+fit_total <- glmsmurf(formula = formu, family=binomial(link = "logit"), data = data, weights = gene_total[poina],
+                            pen.weights = "glm.stand", lambda = "cv1se.dev",control = list(lambda.length = 50L,k=10)) #
+end_time <- Sys.time()
+end_time - start_time
+stopCluster(cl)
 # bootstrap of cells
 boot<-bootstraps(data,times = 100,"X")
 

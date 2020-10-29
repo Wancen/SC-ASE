@@ -13,16 +13,18 @@ sum(vari)
 ratio_pca<-as.matrix(pca$x)
 
 ## decide optimal number of clusters ###########
-mclust.options(emModelNames=c("VVE","VVI","VEI","VEE"))
+# mclust.options(emModelNames=c("VVE","VVI","VEI","VEE"))
 mclust.options(hcModelName = "VVV")
-system.time(d_clust<-Mclust(ratio_pca, G=c(8,10,12,14),initialization = list(hcPairs = hc(ratio_pca, use = "SVD"))))
+system.time(d_clust<-Mclust(ratio_pca,modelNames =c("EII"), G=c(8,10,12,14,16,17,18,20),initialization = list(hcPairs = hc(ratio_pca, use = "SVD"))))
 d_clust$BIC
+d_clust$parameters
 m.best <- dim(d_clust$z)[2]
 cat("model-based optimal number of clusters:", m.best, "\n")
 summary(d_clust)
 gene_cluster_mclust<-data.frame(gene=rownames(ratio_pca),cluster=d_clust$classification)
 table(gene_cluster_mclust$cluster)
-gene_feat_mclust<-which(gene_cluster_mclust$cluster==7)
+plot(ratio_pca[,1],ratio_pca[,2],col=d_clust$classification)
+gene_feat_mclust<-which(gene_cluster_mclust$cluster==1)
 pheatmap(ratio_psedo[gene_feat_mclust,], cluster_rows = FALSE, cluster_cols = FALSE,
          annotation_col = anno_df,show_colnames = F,show_rownames = F)
 
