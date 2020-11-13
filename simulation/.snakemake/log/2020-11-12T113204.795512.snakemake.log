@@ -1,0 +1,87 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cluster nodes: 4
+Job counts:
+	count	jobs
+	1	all
+	6	smurf
+	7
+
+[Thu Nov 12 11:32:05 2020]
+rule smurf:
+    output: csv/n100_cnt10.csv
+    jobid: 2
+    benchmark: bench/n100_cnt10.bench
+    wildcards: n=100, cnt=10
+
+Submitted job 2 with external jobid 'Submitted batch job 7208447'.
+
+[Thu Nov 12 11:32:05 2020]
+rule smurf:
+    output: csv/n200_cnt20.csv
+    jobid: 6
+    benchmark: bench/n200_cnt20.bench
+    wildcards: n=200, cnt=20
+
+Submitted job 6 with external jobid 'Submitted batch job 7208448'.
+
+[Thu Nov 12 11:32:05 2020]
+rule smurf:
+    output: csv/n200_cnt5.csv
+    jobid: 4
+    benchmark: bench/n200_cnt5.bench
+    wildcards: n=200, cnt=5
+
+Submitted job 4 with external jobid 'Submitted batch job 7208449'.
+
+[Thu Nov 12 11:32:05 2020]
+rule smurf:
+    output: csv/n100_cnt5.csv
+    jobid: 1
+    benchmark: bench/n100_cnt5.bench
+    wildcards: n=100, cnt=5
+
+Submitted job 1 with external jobid 'Submitted batch job 7208450'.
+[Thu Nov 12 11:46:56 2020]
+Error in rule smurf:
+    jobid: 2
+    output: csv/n100_cnt10.csv
+    shell:
+        R CMD BATCH --no-save --no-restore '--args 100 10 csv/n100_cnt10.csv'  simulation_mike.R log/n100_cnt10.Rout
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+    cluster_jobid: Submitted batch job 7208447
+
+Error executing rule smurf on cluster (jobid: 2, external: Submitted batch job 7208447, jobscript: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/tmp.mow4vvlj/snakejob.smurf.2.sh). For error details see the cluster log and the log files of the involved rule(s).
+[Thu Nov 12 11:46:56 2020]
+Error in rule smurf:
+    jobid: 6
+    output: csv/n200_cnt20.csv
+    shell:
+        R CMD BATCH --no-save --no-restore '--args 200 20 csv/n200_cnt20.csv'  simulation_mike.R log/n200_cnt20.Rout
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+    cluster_jobid: Submitted batch job 7208448
+
+Error executing rule smurf on cluster (jobid: 6, external: Submitted batch job 7208448, jobscript: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/tmp.mow4vvlj/snakejob.smurf.6.sh). For error details see the cluster log and the log files of the involved rule(s).
+[Thu Nov 12 11:46:56 2020]
+Error in rule smurf:
+    jobid: 4
+    output: csv/n200_cnt5.csv
+    shell:
+        R CMD BATCH --no-save --no-restore '--args 200 5 csv/n200_cnt5.csv'  simulation_mike.R log/n200_cnt5.Rout
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+    cluster_jobid: Submitted batch job 7208449
+
+Error executing rule smurf on cluster (jobid: 4, external: Submitted batch job 7208449, jobscript: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/tmp.mow4vvlj/snakejob.smurf.4.sh). For error details see the cluster log and the log files of the involved rule(s).
+[Thu Nov 12 11:46:56 2020]
+Error in rule smurf:
+    jobid: 1
+    output: csv/n100_cnt5.csv
+    shell:
+        R CMD BATCH --no-save --no-restore '--args 100 5 csv/n100_cnt5.csv'  simulation_mike.R log/n100_cnt5.Rout
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+    cluster_jobid: Submitted batch job 7208450
+
+Error executing rule smurf on cluster (jobid: 1, external: Submitted batch job 7208450, jobscript: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/tmp.mow4vvlj/snakejob.smurf.1.sh). For error details see the cluster log and the log files of the involved rule(s).
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/log/2020-11-12T113204.795512.snakemake.log

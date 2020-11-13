@@ -1,0 +1,26 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cluster nodes: 4
+Job counts:
+	count	jobs
+	1	all
+	2	smurf
+	3
+
+[Fri Nov 13 00:58:41 2020]
+rule smurf:
+    output: csv/n10_cnt100.csv
+    jobid: 2
+    benchmark: bench/n10_cnt100.bench
+    wildcards: n=10, cnt=100
+
+Submitted job 2 with external jobid 'Submitted batch job 7224155'.
+
+[Fri Nov 13 00:58:42 2020]
+rule smurf:
+    output: csv/n10_cnt50.csv
+    jobid: 1
+    benchmark: bench/n10_cnt50.bench
+    wildcards: n=10, cnt=50
+
+Submitted job 1 with external jobid 'Submitted batch job 7224156'.

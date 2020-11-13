@@ -1,0 +1,78 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cluster nodes: 6
+Job counts:
+	count	jobs
+	1	all
+	5	smurf
+	6
+
+[Thu Nov 12 19:37:05 2020]
+rule smurf:
+    output: csv/n400_cnt20.csv
+    jobid: 13
+    benchmark: bench/n400_cnt20.bench
+    wildcards: n=400, cnt=20
+
+Submitted job 13 with external jobid 'Submitted batch job 7217746'.
+
+[Thu Nov 12 19:37:06 2020]
+rule smurf:
+    output: csv/n400_cnt5.csv
+    jobid: 11
+    benchmark: bench/n400_cnt5.bench
+    wildcards: n=400, cnt=5
+
+Submitted job 11 with external jobid 'Submitted batch job 7217747'.
+
+[Thu Nov 12 19:37:06 2020]
+rule smurf:
+    output: csv/n400_cnt50.csv
+    jobid: 14
+    benchmark: bench/n400_cnt50.bench
+    wildcards: n=400, cnt=50
+
+Submitted job 14 with external jobid 'Submitted batch job 7217748'.
+
+[Thu Nov 12 19:37:06 2020]
+rule smurf:
+    output: csv/n400_cnt100.csv
+    jobid: 15
+    benchmark: bench/n400_cnt100.bench
+    wildcards: n=400, cnt=100
+
+Submitted job 15 with external jobid 'Submitted batch job 7217749'.
+
+[Thu Nov 12 19:37:06 2020]
+rule smurf:
+    output: csv/n400_cnt10.csv
+    jobid: 12
+    benchmark: bench/n400_cnt10.bench
+    wildcards: n=400, cnt=10
+
+Submitted job 12 with external jobid 'Submitted batch job 7217750'.
+[Thu Nov 12 20:18:58 2020]
+Finished job 11.
+1 of 6 steps (17%) done
+[Thu Nov 12 20:19:38 2020]
+Finished job 13.
+2 of 6 steps (33%) done
+[Thu Nov 12 20:19:38 2020]
+Finished job 15.
+3 of 6 steps (50%) done
+[Thu Nov 12 20:19:48 2020]
+Finished job 12.
+4 of 6 steps (67%) done
+[Thu Nov 12 20:21:18 2020]
+Finished job 14.
+5 of 6 steps (83%) done
+
+[Thu Nov 12 20:21:18 2020]
+localrule all:
+    input: csv/n100_cnt5.csv, csv/n100_cnt10.csv, csv/n100_cnt20.csv, csv/n100_cnt50.csv, csv/n100_cnt100.csv, csv/n200_cnt5.csv, csv/n200_cnt10.csv, csv/n200_cnt20.csv, csv/n200_cnt50.csv, csv/n200_cnt100.csv, csv/n400_cnt5.csv, csv/n400_cnt10.csv, csv/n400_cnt20.csv, csv/n400_cnt50.csv, csv/n400_cnt100.csv
+    jobid: 0
+
+[Thu Nov 12 20:21:18 2020]
+Finished job 0.
+6 of 6 steps (100%) done
+Complete log: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/log/2020-11-12T193705.468750.snakemake.log

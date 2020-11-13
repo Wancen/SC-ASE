@@ -1,0 +1,56 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cluster nodes: 6
+Job counts:
+	count	jobs
+	1	all
+	4	smurf
+	5
+
+[Thu Nov 12 16:58:01 2020]
+rule smurf:
+    output: csv/n200_cnt100.csv
+    jobid: 6
+    benchmark: bench/n200_cnt100.bench
+    wildcards: n=200, cnt=100
+
+Submitted job 6 with external jobid 'Submitted batch job 7215644'.
+
+[Thu Nov 12 16:58:02 2020]
+rule smurf:
+    output: csv/n200_cnt50.csv
+    jobid: 5
+    benchmark: bench/n200_cnt50.bench
+    wildcards: n=200, cnt=50
+
+Submitted job 5 with external jobid 'Submitted batch job 7215645'.
+
+[Thu Nov 12 16:58:02 2020]
+rule smurf:
+    output: csv/n100_cnt100.csv
+    jobid: 3
+    benchmark: bench/n100_cnt100.bench
+    wildcards: n=100, cnt=100
+
+Submitted job 3 with external jobid 'Submitted batch job 7215646'.
+
+[Thu Nov 12 16:58:02 2020]
+rule smurf:
+    output: csv/n100_cnt50.csv
+    jobid: 2
+    benchmark: bench/n100_cnt50.bench
+    wildcards: n=100, cnt=50
+
+Submitted job 2 with external jobid 'Submitted batch job 7215647'.
+[Thu Nov 12 17:06:52 2020]
+Finished job 6.
+1 of 5 steps (20%) done
+[Thu Nov 12 17:07:32 2020]
+Finished job 5.
+2 of 5 steps (40%) done
+[Thu Nov 12 17:10:13 2020]
+Finished job 3.
+3 of 5 steps (60%) done
+[Thu Nov 12 17:12:53 2020]
+Finished job 2.
+4 of 5 steps (80%) done

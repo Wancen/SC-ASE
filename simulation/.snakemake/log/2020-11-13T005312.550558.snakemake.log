@@ -1,0 +1,20 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cluster nodes: 4
+Job counts:
+	count	jobs
+	1	all
+	1	smurf
+	2
+
+[Fri Nov 13 00:53:12 2020]
+rule smurf:
+    output: csv/n10_cnt100.csv
+    jobid: 1
+    benchmark: bench/n10_cnt100.bench
+    wildcards: n=10, cnt=100
+
+Submitted job 1 with external jobid 'Submitted batch job 7224118'.
+Terminating processes on user request, this might take some time.
+Will exit after finishing currently running jobs.
+Complete log: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/log/2020-11-13T005312.550558.snakemake.log
