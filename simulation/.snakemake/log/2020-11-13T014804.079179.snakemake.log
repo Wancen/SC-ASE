@@ -1,0 +1,49 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cluster nodes: 4
+Job counts:
+	count	jobs
+	1	all
+	2	smurf
+	3
+
+[Fri Nov 13 01:48:04 2020]
+rule smurf:
+    output: csv/n10_cnt100.csv
+    jobid: 2
+    benchmark: bench/n10_cnt100.bench
+    wildcards: n=10, cnt=100
+
+Submitted job 2 with external jobid 'Submitted batch job 7224369'.
+
+[Fri Nov 13 01:48:04 2020]
+rule smurf:
+    output: csv/n10_cnt50.csv
+    jobid: 1
+    benchmark: bench/n10_cnt50.bench
+    wildcards: n=10, cnt=50
+
+Submitted job 1 with external jobid 'Submitted batch job 7224370'.
+[Fri Nov 13 01:52:04 2020]
+Error in rule smurf:
+    jobid: 2
+    output: csv/n10_cnt100.csv
+    shell:
+        R CMD BATCH --no-save --no-restore '--args 10 100 csv/n10_cnt100.csv'  smurf.R log/n10_cnt100.Rout
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+    cluster_jobid: Submitted batch job 7224369
+
+Error executing rule smurf on cluster (jobid: 2, external: Submitted batch job 7224369, jobscript: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/tmp._tdbhjnx/snakejob.smurf.2.sh). For error details see the cluster log and the log files of the involved rule(s).
+[Fri Nov 13 01:52:04 2020]
+Error in rule smurf:
+    jobid: 1
+    output: csv/n10_cnt50.csv
+    shell:
+        R CMD BATCH --no-save --no-restore '--args 10 50 csv/n10_cnt50.csv'  smurf.R log/n10_cnt50.Rout
+        (one of the commands exited with non-zero exit code; note that snakemake uses bash strict mode!)
+    cluster_jobid: Submitted batch job 7224370
+
+Error executing rule smurf on cluster (jobid: 1, external: Submitted batch job 7224370, jobscript: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/tmp._tdbhjnx/snakejob.smurf.1.sh). For error details see the cluster log and the log files of the involved rule(s).
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/log/2020-11-13T014804.079179.snakemake.log

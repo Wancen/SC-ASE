@@ -6,6 +6,7 @@ out <- cmd_args[3]
 
 source("/proj/milovelab/mu/SC-ASE/simulation/cluster.R")
 source("/proj/milovelab/mu/SC-ASE/simulation/fusedlasso.R")
+
 library("smurf")
 library(emdbook)
 library(mclust)
@@ -13,14 +14,16 @@ library(pbapply)
 library(aricode)
 library(pheatmap)
 
-ngene<-100
+# n<-10
+# cnt<-50
+ngene<-60
 nct<-8
 x <- factor(rep(1:nct,each=n))
 mu1 <- 5
 nb.disp <- 1/100
 ncl<-2 #2 gene cluster. AI & no AI
 
-ans <- pbsapply(1:50, function(i) {
+ans <- pbsapply(1:40, function(i) {
   set.seed(i)
   
   # total count
@@ -32,7 +35,7 @@ ans <- pbsapply(1:50, function(i) {
   p <- rep(p.vec, each=n*nct*ngene/length(p.vec)) # true prob
   nclcell<-nct*n*ngene/ncl # #cells within cluster
   ase.cts <- rbind(matrix(rbetabinom(nclcell, prob=head(p,nclcell), size=cts[1:(ngene/ncl),], theta=10),ncol = nct*n),
-                 matrix(rbetabinom(nclcell, prob=tail(p,nclcell), size=cts[(ngene/ncl+1):100,], theta=10),ncol = nct*n))# obs counts
+                 matrix(rbetabinom(nclcell, prob=tail(p,nclcell), size=cts[(ngene/ncl+1):ngene,], theta=10),ncol = nct*n))# obs counts
 
   ratio<-(ase.cts)/(cts)
   ratio_pseudo<-(ase.cts+1)/(cts+2) ## pseudo allelic ratio for gene clustering 
@@ -64,21 +67,21 @@ ans <- pbsapply(1:50, function(i) {
     out[[j]]=c(acl,a,a2,t,t2)
     }
     out
-  }, cl=6)
+  }, cl=4)
 
 ans <- do.call(cbind, ans)
 
 # save the results as a data.frame
 dat <- data.frame(type=rep(c("bin","gau"),each=ncol(ans)/2),
                   ARI_cl=as.vector(t(ans[1,])),
-                  ARI_AI=as.vector(t(ans[2:3,c(TRUE,FALSE)])),
-                  ARI_NAI=as.vector(t(ans[2:3,c(FALSE,TRUE)])),
-                  time1=as.vector(t(ans[4:5,c(TRUE,FALSE)])),
-                  time2=as.vector(t(ans[4:5,c(FALSE,TRUE)])),
+                  ARI_AI=as.vector(t(ans[2:3,])),
+                  cl=rep(c("AI","NAI"),n=ncol(ans)),
+                  time=as.vector(t(ans[4:5,])),
                   n=n,
                   cnt=cnt)
 
 # write out as a table
+# write.table(dat, file="out.csv", row.names=FALSE, col.names=FALSE, quote=FALSE, sep=",")
 write.table(dat, file=out, row.names=FALSE, col.names=FALSE, quote=FALSE, sep=",")
 
 

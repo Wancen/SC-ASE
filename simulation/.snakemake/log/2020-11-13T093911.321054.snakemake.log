@@ -1,0 +1,31 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cluster nodes: 4
+Job counts:
+	count	jobs
+	1	all
+	2	smurf
+	3
+
+[Fri Nov 13 09:39:11 2020]
+rule smurf:
+    output: csv/n10_cnt100.csv
+    jobid: 2
+    benchmark: bench/n10_cnt100.bench
+    wildcards: n=10, cnt=100
+
+Error submitting jobscript (exit code 255):
+
+
+[Fri Nov 13 09:39:11 2020]
+rule smurf:
+    output: csv/n10_cnt50.csv
+    jobid: 1
+    benchmark: bench/n10_cnt50.bench
+    wildcards: n=10, cnt=50
+
+Error submitting jobscript (exit code 255):
+
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/log/2020-11-13T093911.321054.snakemake.log

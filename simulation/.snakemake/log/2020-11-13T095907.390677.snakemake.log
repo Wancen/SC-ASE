@@ -1,0 +1,42 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cluster nodes: 4
+Job counts:
+	count	jobs
+	1	all
+	2	smurf
+	3
+
+[Fri Nov 13 09:59:07 2020]
+rule smurf:
+    output: csv/n10_cnt50.csv
+    jobid: 1
+    benchmark: bench/n10_cnt50.bench
+    wildcards: n=10, cnt=50
+
+Submitted job 1 with external jobid 'Submitted batch job 7230401'.
+
+[Fri Nov 13 09:59:08 2020]
+rule smurf:
+    output: csv/n10_cnt100.csv
+    jobid: 2
+    benchmark: bench/n10_cnt100.bench
+    wildcards: n=10, cnt=100
+
+Submitted job 2 with external jobid 'Submitted batch job 7230402'.
+[Fri Nov 13 10:03:07 2020]
+Finished job 1.
+1 of 3 steps (33%) done
+[Fri Nov 13 10:03:17 2020]
+Finished job 2.
+2 of 3 steps (67%) done
+
+[Fri Nov 13 10:03:17 2020]
+localrule all:
+    input: csv/n10_cnt50.csv, csv/n10_cnt100.csv
+    jobid: 0
+
+[Fri Nov 13 10:03:17 2020]
+Finished job 0.
+3 of 3 steps (100%) done
+Complete log: /proj/milovelab/mu/SC-ASE/simulation/.snakemake/log/2020-11-13T095907.390677.snakemake.log

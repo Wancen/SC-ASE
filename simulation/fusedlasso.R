@@ -1,4 +1,4 @@
-fusedlasso<-function(formula,model="gaussian",data,size,misspoi,lambda="cv1se.dev",k=5){
+fusedlasso<-function(formula,model="gaussian",data,size,misspoi=NULL,lambda="cv1se.dev",k=5){
   if(model=="binomial"){
       # need to use tryCatch to avoid lambda.max errors
       try1 <- tryCatch({
@@ -9,12 +9,12 @@ fusedlasso<-function(formula,model="gaussian",data,size,misspoi,lambda="cv1se.de
       }, error=function(e) {
         message("Failed determining the maximum of lambda, run gaussian model instead")
         fit <-glmsmurf(formula=formula, family=gaussian(), data=data,
-                pen.weights="glm.stand", lambda="cv1se.dev",control=list(lambda.length=20L, k=5, ncores=1))});
+                pen.weights="glm.stand", lambda="cv1se.dev",control=list(lambda.length=20L, k=k, ncores=1))});
     }
   if(model=="gaussian"){
        fit <- glmsmurf(formula=formula, family=gaussian(), data=data,
                         pen.weights="glm.stand", lambda="cv1se.dev", 
-                        control=list(lambda.length=20L, k=5, ncores=1))
+                        control=list(lambda.length=20L, k=k, ncores=1))
   } 
   return(fit)
 }

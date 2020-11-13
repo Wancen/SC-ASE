@@ -12,4 +12,4 @@ rule smurf:
     benchmark: "bench/n{n}_cnt{cnt}.bench"
     shell:
         "R CMD BATCH --no-save --no-restore '--args {wildcards.n} {wildcards.cnt} {output}' " 
-        " smurf.R log/n{wildcards.n}_cnt{wildcards.cnt}.Rout"
+        "smurf.R log/n{wildcards.n}_cnt{wildcards.cnt}.Rout"
