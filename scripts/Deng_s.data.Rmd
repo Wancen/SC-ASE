@@ -1,0 +1,84 @@
+---
+title: "Deng's.data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+load("../../data/postprocess.rda")
+source("../simulation/cluster.R")
+source("../simulation/fusedlasso.R")
+library(tidyverse)
+library(dynamicTreeCut)
+library(pheatmap)
+library(smurf)
+library(foreach)
+library(doParallel)
+library(rsample)
+library(pbapply)
+nct=10
+ncores=4
+## helper function
+comb <- function(x, ...) {
+  lapply(seq_along(x),
+         function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
+}
+trace(parallel:::sendMaster, at = 3L, tracer = quote({ str(list(what = what)) }))
+```
+
+Hierarchical clustering using `cutreeDynamic` to automatically cut the tree
+```{r}
+### Dimension decution ############################
+pca<-prcomp(ratio_psedo,rank. = nct*2)
+vari<-summary(pca)$importance[2,1:20]
+sum(vari)
+ratio_pca<-as.matrix(pca$x)
+
+## Hierarchical clustering ##########################
+my.dist <- dist(ratio_pca,method = "manhattan")
+my.tree <- hclust(my.dist, method="ward.D2")
+my.clusters <- unname(cutreeDynamic(my.tree, distM=as.matrix(my.dist), verbose=0))
+table(my.clusters) #output 22 clusters
+plot(ratio_pca[,1],ratio_pca[,2],col=my.clusters)
+```
+
+Using `mclust` to do the clustering
+```{r}
+cluster<-genecluster(ratio_psedo,nct,G=c(4,8,12,16,20,24))
+table(cluster)
+```
+
+Modelling for each cluster
+```{r}
+start_time <- Sys.time()
+f <- ratio ~ p(X, pen = "gflasso")
+cl <- makeCluster(2) # use 4 workers
+registerDoParallel(cl) # register the parallel backend
+start_time <- Sys.time()
+ans <- pbsapply(9:10, function(i) { # try on cluster 9th and 10th first
+  feat<-which(cluster==i)
+  pheatmap(ratio_psedo[feat,], cluster_rows = FALSE, cluster_cols = FALSE,
+         annotation_col = anno_df,show_colnames = F,show_rownames = F)
+  # create dataframe for each cluster
+  cl_ratio<-as.vector(unlist(ratio[feat,]))
+  cl_total<-as.vector(unlist(total_QCed[feat,]))
+  data<-tibble(ratio=cl_ratio,X=factor(rep(celltype,each=length(feat)),levels = cell_meta_unique),cts=cl_total)
+  
+  t <- system.time(fit<-fusedlasso(formula=f,model="binomial",data))[[3]] # saving the elapsed time
+  t2 <- system.time(fit2<-fusedlasso(formula=f,model="gaussian",data))[[3]] # saving the elapsed time
+  
+  ## bootstrap 100 replicates
+  system.time(boot <- boot(data, statistic=boot_fusedlasso,R=10,strata=data$X,formula=f,lambda1=fit$lambda,lambda2=fit2$lambda,parallel="multicore",ncpus=2))
+  return(boot)
+  }, cl=2)
+end_time <- Sys.time()
+end_time - start_time
+stopCluster(cl)
+```
+
+```{r}
+str(ans)
+save(ans,file = "../../data/model.rda")
+# load("../../data/model.rda")
+```
+
