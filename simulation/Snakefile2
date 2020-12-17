@@ -1,0 +1,15 @@
+shell.executable("/bin/bash")
+shell.prefix("source ~/.bashrc;")
+
+configfile: "config2.json"
+
+rule all:
+    input:
+        expand("csv/sim3{n}_cnt{cnt}_k{k}.csv", n=config["n"], cnt=config["cnt"],k=config["k"])
+
+rule smurf:
+    output: "csv/sim3{n}_cnt{cnt}_k{k}.csv"
+    benchmark: "bench/sim3{n}_cnt{cnt}_k{k}.bench"
+    shell:
+        "R CMD BATCH --no-save --no-restore '--args {wildcards.n} {wildcards.cnt} {wildcards.k} {output}' " 
+        "sim3.R log/sim3{wildcards.n}_cnt{wildcards.cnt}_k{wildcards.k}.Rout"

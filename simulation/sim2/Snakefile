@@ -1,0 +1,15 @@
+shell.executable("/bin/bash")
+shell.prefix("source ~/.bashrc;")
+
+configfile: "config.json"
+
+rule all:
+    input:
+        expand("csv/sim2_n{ngenecl}.csv", ngenecl=config["ngenecl"])
+
+rule smurf:
+    output: "csv/sim2_n{ngenecl}.csv"
+    benchmark: "bench/sim2_n{ngenecl}.bench"
+    shell:
+        "R CMD BATCH --no-save --no-restore '--args {wildcards.ngenecl} {output}' " 
+        "sim2.R log/sim2_n{wildcards.ngenecl}.Rout"

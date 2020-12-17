@@ -8,38 +8,38 @@ knitr::opts_chunk$set(echo = TRUE)
 load("../../data/postprocess.rda")
 source("../simulation/cluster.R")
 source("../simulation/fusedlasso.R")
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# 
+# BiocManager::install("apeglm")
+library(apeglm)
 library(tidyverse)
 library(dynamicTreeCut)
 library(pheatmap)
+library(boot)
 library(smurf)
-library(foreach)
 library(doParallel)
-library(rsample)
 library(pbapply)
+library(clue)
+library(fastmatch)
 nct=10
-ncores=4
-## helper function
-comb <- function(x, ...) {
-  lapply(seq_along(x),
-         function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
-}
-trace(parallel:::sendMaster, at = 3L, tracer = quote({ str(list(what = what)) }))
+ncores=10
+```
+
+```{r}
+total1 <- total[keep_feature, ]
+total_CellQC<-total1[,cellQC]
+total_fil<-total_CellQC[keep_feature2,]
+total_QCed<-total_fil[check2,]
+ase.count<-((cast_uq[keep_feature,cellQC])[keep_feature2,])[check2,]
+ratio<-((cast_uq[keep_feature,cellQC])[keep_feature2,])[check2,]/total_QCed
+ratio_psedo<-(((cast_uq[keep_feature,cellQC])[keep_feature2,])[check2,]+2)/(total_QCed+4)
 ```
 
 Hierarchical clustering using `cutreeDynamic` to automatically cut the tree
 ```{r}
-### Dimension decution ############################
-pca<-prcomp(ratio_psedo,rank. = nct*2)
-vari<-summary(pca)$importance[2,1:20]
-sum(vari)
-ratio_pca<-as.matrix(pca$x)
-
-## Hierarchical clustering ##########################
-my.dist <- dist(ratio_pca,method = "manhattan")
-my.tree <- hclust(my.dist, method="ward.D2")
-my.clusters <- unname(cutreeDynamic(my.tree, distM=as.matrix(my.dist), verbose=0))
-table(my.clusters) #output 22 clusters
-plot(ratio_pca[,1],ratio_pca[,2],col=my.clusters)
+cluster<-genecluster(ratio_psedo,nct,method="hierarchical")
+table(cluster)
 ```
 
 Using `mclust` to do the clustering
@@ -48,37 +48,118 @@ cluster<-genecluster(ratio_psedo,nct,G=c(4,8,12,16,20,24))
 table(cluster)
 ```
 
+```{r}
+estBetaParams <- function(mu, var) {
+  alpha <- ((1 - mu) / var - 1 / mu) * mu ^ 2
+  beta <- alpha * (1 / mu - 1)
+  return(params = (alpha+beta))
+}
+
+x <- matrix(1, ncol=1, nrow=ncol(total_QCed[,which(celltypeQc%in%c("earlyblast","midblast","lateblast"))]))
+theta.hat <- 100
+param <- cbind(theta.hat, total_QCed[,which(celltypeQc%in%c("earlyblast","midblast","lateblast"))])
+for (i in 1:5) {
+fit.mle <- apeglm(Y=as.matrix(ase.count[,which(celltypeQc%in%c("earlyblast","midblast","lateblast"))]), x=x, log.lik=NULL, param=param, no.shrink=TRUE, log.link=FALSE, method="betabinC")
+theta.hat <- bbEstDisp(success=as.matrix(ase.count[,which(celltypeQc%in%c("earlyblast","midblast","lateblast"))]), size=as.matrix(total_QCed[,which(celltypeQc%in%c("earlyblast","midblast","lateblast"))]), x=x, beta=fit.mle$map, minDisp=.01, maxDisp=5000)
+}
+bb_genemean<-apply(total_QCed[,which(celltypeQc%in%c("earlyblast","midblast","lateblast"))], 1,mean, na.rm=T)
+bb<-data.frame(genemean=bb_genemean,theta=theta.hat)
+ggplot(bb[which(bb$genemean>20),],aes(genemean, theta)) +
+  geom_point() +geom_smooth(method = lm)+
+  ylim(0, 10)
+
+
+
+celltypeQc<-celltype[cellQC]
+bb_mean1<-apply(ratio, 1,mean, na.rm=T)
+bb_genemean1<-apply(total_QCed, 1,mean, na.rm=T)
+hist(bb_genemean1,breaks = 1000,xlim = c(0,100))
+
+bb_var1<-apply(ratio, 1,var, na.rm=T)
+bb1<-tibble(mean=as.numeric(bb_mean1),var=as.numeric(bb_var1),genemean=bb_genemean1)
+bb1[,"theta"]<-pbsapply(1:nrow(bb1),function(i){estBetaParams(bb_mean1[i],bb_var1[i])})
+na<-which(is.na(bb$theta)|is.nan(bb$theta))
+c<-bb$theta[-na]
+hist(bb1$theta,breaks = 200,xlim=c(0,10),xlab = "theta",main = "Overdispersion parameter")
+ggplot(bb1, aes(genemean, theta)) +
+  geom_point() +geom_smooth(method = lm)+
+  ylim(0, 10)+xlim(0,2000)
+
+data %>% group_by(X) %>% summarise(wm=weighted.mean(ratio,cts),m=mean(ratio,na.rm = T)) %>% data.frame()
+dat2<-data %>% filter(X%in%c("zy","early2cell"))
+dat2<-data %>% filter(X%in%c("late2cell"))
+dat3<-data %>% filter(X%in%c("earlyblast","midblast","lateblast"))
+hist(dat3$ratio)
+```
+
 Modelling for each cluster
 ```{r}
+R=200
 start_time <- Sys.time()
 f <- ratio ~ p(X, pen = "gflasso")
-cl <- makeCluster(2) # use 4 workers
+cl <- makeCluster(ncores) # use 4 workers
 registerDoParallel(cl) # register the parallel backend
 start_time <- Sys.time()
-ans <- pbsapply(9:10, function(i) { # try on cluster 9th and 10th first
+ans <- pbsapply(1:max(cluster), function(i) { # try on cluster 9th and 10th first
+  set.seed(i)
+  print(paste("cluster",i))
   feat<-which(cluster==i)
   pheatmap(ratio_psedo[feat,], cluster_rows = FALSE, cluster_cols = FALSE,
-         annotation_col = anno_df,show_colnames = F,show_rownames = F)
+         annotation_col = anno_df2,show_colnames = F,show_rownames = F)
   # create dataframe for each cluster
   cl_ratio<-as.vector(unlist(ratio[feat,]))
   cl_total<-as.vector(unlist(total_QCed[feat,]))
   data<-tibble(ratio=cl_ratio,X=factor(rep(celltype,each=length(feat)),levels = cell_meta_unique),cts=cl_total)
   
-  t <- system.time(fit<-fusedlasso(formula=f,model="binomial",data))[[3]] # saving the elapsed time
-  t2 <- system.time(fit2<-fusedlasso(formula=f,model="gaussian",data))[[3]] # saving the elapsed time
+  t <- system.time(fit<-fusedlasso(formula=f,model="binomial",data,ncores=ncores))[[3]] # saving the elapsed time
+  t2 <- system.time(fit2<-fusedlasso(formula=f,model="gaussian",data,ncores=ncores))[[3]] # saving the elapsed time
   
-  ## bootstrap 100 replicates
-  system.time(boot <- boot(data, statistic=boot_fusedlasso,R=10,strata=data$X,formula=f,lambda1=fit$lambda,lambda2=fit2$lambda,parallel="multicore",ncpus=2))
-  return(boot)
-  }, cl=2)
+  ## bootstrap 200 replicates
+  t3<-system.time(boot <- boot(data,statistic=boot_fusedlasso,R=R,strata=data$X,formula=f,model="binomial",lambda1=fit$lambda,parallel="multicore",ncpus=ncores))[[3]]
+  t4<-system.time(boot2 <- boot(data,statistic=boot_fusedlasso,R=R,strata=data$X,formula=f,model="gaussian",lambda2=fit2$lambda,parallel="multicore",ncpus=ncores))[[3]]
+  ## boxplot of bootstrap allelic ratio estimator
+  bootbox<-as_tibble(rbind(boot$t,boot2$t)) 
+  colnames(bootbox)<-cell_meta_unique
+  bootbox2<-tibble(bootbox,model=rep(c("bin","gau"),each=R))
+  bootbox3<-bootbox2 %>% gather(key="type",value = "ratio",zy:lateblast)
+
+  ggplot(data = bootbox3, mapping = aes(x=type, y=ratio, fill=model,col=model)) + 
+  geom_boxplot()+ theme_classic()+
+  geom_jitter(shape=16, position=position_jitter(0.2),size=0.7)+
+  ylab("allelic ratio")+
+  xlab("")+scale_x_discrete(name ="Cell types", 
+                   limits=cell_meta_unique)
+  ## consensus partation #################
+  bootcl <-apply(bootbox, 1, function(x) fmatch(x,unique(x)))
+  consens_par<-cl_consensus(cl_ensemble(list = apply(bootcl[,1:R],2,as.cl_hard_partition)),method = "SM")
+  class <- max.col(consens_par$.Data)
+  consens_par<-cl_consensus(cl_ensemble(list = apply(bootcl[,(R+1):(2*R)],2,as.cl_hard_partition)),method = "SM")
+  class2 <- max.col(consens_par$.Data)
+  
+  ## confidence interval ####
+  bootci<-apply(boot$t,2, function(x) quantile(x,probs = c(0.025,0.975))) #percentil bootstrap ci
+  bootci2<-matrix(rep(2*boot$t0,each=2),nrow = 2)-bootci #type 2 percentile
+  ratio_bc<-boot$t0 #estimator
+  
+  boot2ci<-apply(boot2$t,2, function(x) quantile(x,probs = c(0.025,0.975))) #percentil bootstrap ci
+  boot2ci2<-matrix(rep(2*boot2$t0,each=2),nrow = 2)-boot2ci #type 2 percentile
+  ratio_bc2<-boot2$t0 #estimator
+  
+  out<-list()
+  out[["time"]]<-c(t,t2,t3,t4)
+  out[["ratio"]]<-rbind(ratio_bc,ratio_bc2)
+  out[["ci"]]<-rbind(bootci2,boot2ci2)
+  out[["consensus"]]<-rbind(class,class2)
+  return(out)
+  }, cl=1)
 end_time <- Sys.time()
 end_time - start_time
 stopCluster(cl)
+
 ```
 
 ```{r}
-str(ans)
-save(ans,file = "../../data/model.rda")
-# load("../../data/model.rda")
+save(ans,file = "/proj/milovelab/mu/SC-ASE/data/deng.rda")
 ```
+
 
